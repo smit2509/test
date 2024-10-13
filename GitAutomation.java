@@ -6,41 +6,44 @@ public class GitAutomation {
 
     public static void main(String[] args) {
         String commitMessage = "Automated commit";
-        String branch = "main"; // The branch you want to push to
+        String remoteRepository = "origin";
+        String branch = "main";
 
         try {
             // Stage all changes
-            executeCommand("git add .");
+            executeGitCommand("add .");
 
             // Commit changes with a message
-            executeCommand("git commit -m \"" + commitMessage + "\"");
+            executeGitCommand("commit -m \"" + commitMessage + "\"");
 
-            // Push changes to the repository
-            executeCommand("git push origin " + branch);
+            // Push changes to a remote repository
+            executeGitCommand("push " + remoteRepository + " " + branch);
+
+            System.out.println("Git tasks completed successfully.");
         } catch (IOException | InterruptedException e) {
-            System.err.println("Error: " + e.getMessage());
+            System.err.println("Error executing Git command: " + e.getMessage());
         }
     }
 
-    private static void executeCommand(String command) throws IOException, InterruptedException {
-        // For Windows use "cmd.exe" with "/c" flag to run the commands
-        ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", command);
-        processBuilder.redirectErrorStream(true); // Redirect error stream to standard output
+    private static void executeGitCommand(String command) throws IOException, InterruptedException {
+        ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", "git " + command);
         Process process = processBuilder.start();
 
-        // Read the output from the command
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line); // Output the command result
-            }
+        BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+        String line;
+        while ((line = outputReader.readLine()) != null) {
+            System.out.println(line);
         }
 
-        // Wait for the process to finish and check the exit code
         int exitCode = process.waitFor();
         if (exitCode != 0) {
-            System.err.println("Command failed: " + command + " (Exit code: " + exitCode + ")");
-            throw new IOException("Command failed with exit code " + exitCode);
+            System.err.println("Error executing Git command: " + command);
+            while ((line = errorReader.readLine()) != null) {
+                System.err.println(line);
+            }
+            throw new IOException("Git command failed with exit code " + exitCode);
         }
     }
 }
